@@ -1,0 +1,40 @@
+service: stepfunctions-error-notify
+
+frameworkVersion: "2"
+
+provider:
+  name: aws
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-northeast-1'}
+  memorySize: 256
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "secretsmanager:GetSecretValue"
+      Resource:
+        - "*"
+  environment: ${self:custom.environment.${self:provider.stage}}
+
+custom:
+  pythonRequirements:
+    usePipenv: true
+  environment:
+    dev:
+      SECRET_NAME: dev/slack
+    prod:
+      SECRET_NAME: prod/slack
+
+functions:
+  time_out:
+    handler: handler.time_out
+  notify_error:
+    handler: slack.notify_error
+    environment: ${self:custom.environment.${self:provider.stage}}
+
+stepFunctions: ${file(includes/state-machines.yml)}
+
+plugins:
+  - serverless-step-functions
+  - serverless-python-requirements
