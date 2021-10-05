@@ -1,0 +1,31 @@
+stateMachines:
+  testfunc:
+    name: SFnErrorNotify-${self:provider.stage}
+    definition:
+      StartAt: TimeOut
+      States:
+        TimeOut:
+          Type: Task
+          InputPath: "$"
+          Resource:
+            Fn::GetAtt: [time_out, Arn]
+          Catch:
+            - ErrorEquals:
+                - States.ALL
+              Next: NotifyError
+          Next: Done
+        NotifyError:
+          Type: Task
+          Resource:
+            Fn::GetAtt: [notify_error, Arn]
+          Parameters:
+            param.$: $
+            Execution.$: $$.Execution
+            State.$: $$.State
+            StateMachine.$: $$.StateMachine
+          Next: FailState
+        FailState:
+          Type: Fail
+        Done:
+          Type: Pass
+          End: true
